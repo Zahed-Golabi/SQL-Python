@@ -2,7 +2,7 @@ import mysql.connector as mysql
 
 
 def main():
-    db = mysql.connect(host="127.0.0.1", user='zahed', password='94723115')
+    db = mysql.connect(host="127.0.0.1", user='zahed', password='##########')
     cur = db.cursor()
 
     cur.execute("SELECT VERSION()")
