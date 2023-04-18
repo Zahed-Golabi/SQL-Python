@@ -60,8 +60,8 @@ def main():
         # get column names from SQLite meta-data table_info
         cur.execute("PRAGMA table_info(hello);")
         row = cur.fetchall()
-        colnames = [r[1] for r in row]
-        print(f"columns names are: {colnames}")
+        column_names = [r[1] for r in row]
+        print(f"columns names are: {column_names}")
 
         # fetch rows using iterator
         print("\nusing iterator")
@@ -90,6 +90,10 @@ def main():
         print(f"could not fetch rows: {e}")
         exit(1)
 
+    # drop table and close the database
+    print("\ndrop table and close connection")
+    cur.execute("DROP TABLE IF EXISTS hello")  # cleanup if db is not :memory:
+    print("memory cleaned:!")
     cur.close()
     db.close()
 
