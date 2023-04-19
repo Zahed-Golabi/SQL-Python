@@ -2,7 +2,7 @@ import mysql.connector as mysql
 
 HOST = "localhost"
 USER_NAME = "zahed"
-PASSWORD = "#####"
+PASSWORD = "#########"
 
 
 def main():
