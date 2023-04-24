@@ -1,7 +1,6 @@
 import sqlite3
 import mysql.connector as mysql
 
-
 # MySQL Database Connection
 HOST = "127.0.0.1"
 USER = "zahed"
@@ -10,6 +9,7 @@ MYSQL_DATABASE = "university"
 
 # SQLite Database Connection
 SQLite_DATABASE = "../db/university.db"
+
 
 def main():
     """
@@ -81,7 +81,7 @@ def main():
         print("trying to insert rows to table student on mysql....")
         row_values = [(947231, "Martian", "Amir", "AI", "Computer"),
                       (947232, "David", "Captain", "Network", "Computer"),
-                      (947233, "Leonard", "Lipard", "Power", "Electrical")
+                      (947233, "Leonard", "Lizard", "Power", "Electrical")
                       ]
         mysql_cursor.executemany(insert_query, row_values)
         mysql_db.commit()
@@ -104,7 +104,6 @@ def main():
         print(f"could not fetch rows from student: {error}")
         exit(1)
 
-
     try:
         print("rows in sqlite student table after copy")
         sqlite_cursor.execute(select_query)
@@ -115,6 +114,22 @@ def main():
         print(f"could not fetch rows in sqlite student after copy: {error}")
         exit(1)
 
+    # close connections
+    try:
+
+        mysql_cursor.close()
+        sqlite_cursor.close()
+        mysql_db.close()
+        sqlite_db.close()
+        print("\nsuccessfully closed connections")
+    except:
+        print("could not close connections:")
+        exit(1)
+
+
+
 
 if __name__ == '__main__':
     main()
+
+
