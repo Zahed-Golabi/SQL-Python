@@ -326,7 +326,122 @@ class WDB:
                 return True
         return False
 
-    
+    def lastrowid(self):
+        return self._cur.lastrowid
+
+    def begin_transaction(self):
+        if self.have_db():
+            if self._database == "sqlite":
+                self.sql_do("BEGIN TRANSACTION")
+            elif self._database == "mysql":
+                self.sql_do("START TRANSACTION")
+
+    def rollback(self):
+        if self.have_db():
+            self._db.rollback()
+
+    def commit(self):
+        if self.have_db():
+            self._db.commit()
+
+    def disconnect(self):
+        if self.have_cursor():
+            self._cur.close()
+        if self.have_db():
+            self._db.close()
+        self._cur = None
+        self._db = None
+        self._column_names = None
+
+    # destructor
+    def __del__(self):
+        self.disconnect()
+
+
+MY_HOST = "127.0.0.1"
+MY_USER = "zahed"
+MY_PASS = "##########"
+
+def main():
+    try:
+        db = WDB(dbms="sqlite", database="../db/final.db")
+        # db = WDB(dbms="mysql", host=MY_HOST, user=MY_USER, password=MY_PASS, database="final"
+
+        print(f"WDB version {db.version()}")
+        print(f"dbms is {db.dbms}\n")
+
+        # start clean
+        db.sql_do("DROP TABLE IF EXISTS temp")
+
+        print(f"have table {db.have_table('temp')}")
+
+        print("create a table")
+        if db.dbms == "sqlite":
+            create_table = """
+            CREATE TABLE IF NOT EXISTS temp (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT
+            )
+            """
+        elif db.dbms == "mysql":
+            create_table = """
+            CREATE TABLE IF NOT EXISTS temp (
+            id INTEGER AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR (128) NOT NULL,
+            description VARCHAR (128)
+            )
+            """
+        else:
+            raise WErr("create table: unknown dbms")
+
+        # create and set the table
+        db.sql_do(create_table)
+        db.table = "temp"
+        print(f"have table {db.have_table()}")
+        print(f"table columns: {db.column_names()}\n")
+
+        print("populate table")
+        insert_rows = [
+            ("Jimi Hendrix", "Guitar"),
+            ("Miles Davis", "Trumpet"),
+            ("Billy Cobham", "Drums"),
+            ("Charlie Bird", "Saxophone"),
+            ("Oscar Peterson", "Piano"),
+            ("Marcus Miller", "Bass")
+        ]
+
+        print("not add rows (rollback)")
+        db.begin_transaction()
+        for row in insert_rows:
+            db.add_row_nocommit()
+        db.rollback()
+
+        print("add rows")
+        db.begin_transaction()
+        for row in insert_rows:
+            db.add_row_nocommit(row)
+        db.commit()
+        print(f"added {len(insert_rows)} rows")
+
+        print(f"there are {db.count_rows()} rows")
+
+        for row in db.get_rows():
+            print(row)
+
+        print()
+        
+
+
+
+
+
+
+
+
+
+
+
 
 
 
