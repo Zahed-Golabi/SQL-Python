@@ -1,7 +1,12 @@
-# module version
-__version__ = "3.1.0"
+#!/usr/bin/env python3
+# Copyright 2021 BHG [bw.org]
+# BWDB.py as of 2021-04-13 bw
 
-# import sqlite
+
+# module version
+__version__ = "3.1.11"
+
+# import sqlite3
 try:
     import sqlite3
 
@@ -20,14 +25,15 @@ except ImportError:
     have_mysql = False
 
 
-class WErr(Exception):
-    """Simple Error Class"""
+class BWErr(Exception):
+    """Simple Error class"""
 
     def __init__(self, message):
         self.message = message
-        super.__init__(self.message)
+        super().__init__(self.message)
 
-class WDB:
+
+class BWDB:
     def __init__(self, **kwargs):
         self._db = None
         self._cur = None
@@ -36,48 +42,49 @@ class WDB:
         self._table = None
         self._column_names = None
 
-        # populate simple parameter first
-        if "user" in kwargs:
-            self._user = kwargs["user"]
+        # populate simple parameters first
+        if 'user' in kwargs:
+            self._user = kwargs['user']
         else:
             self._user = None
 
-        if "password" in kwargs:
-            self._password = kwargs["password"]
+        if 'password' in kwargs:
+            self._password = kwargs['password']
         else:
             self._password = None
 
-        if "host" in kwargs:
-            self._host = kwargs["host"]
+        if 'host' in kwargs:
+            self._host = kwargs['host']
         else:
             self._host = None
 
         # populate properties
-        if "dbms" in kwargs:
-            self._dbms = kwargs["dbms"]
+        if 'dbms' in kwargs:
+            self.dbms = kwargs['dbms']
 
-        if "database" in kwargs:
-            self._database = kwargs["database"]
+        if 'database' in kwargs:
+            self.database = kwargs['database']
 
-        if "table" in kwargs:
-            self._table = kwargs["table"]
+        if 'table' in kwargs:
+            self.table = kwargs['table']
 
-
-    # setters and getters
+    # property setters/getters
     def get_dbms(self):
         return self._dbms
 
     def set_dbms(self, dbms_str):
-        if dbms_str == "mysql":
+        if dbms_str == 'mysql':
             if have_mysql:
                 self._dbms = dbms_str
             else:
-                raise WErr("mysql not available")
-        elif dbms_str == "sqlite":
+                raise BWErr('mysql not available')
+        elif dbms_str == 'sqlite':
             if have_sqlite3:
                 self._dbms = dbms_str
             else:
-                raise WErr("set_dbms: invalid dbms_str specified")
+                raise BWErr('sqlite not available')
+        else:
+            raise BWErr('set_dbms: invalid dbms_str specified')
 
     def get_database(self):
         return self._database
@@ -90,28 +97,28 @@ class WDB:
             self._db.close()
 
         self._database = database
-        if self._dbms == "sqlite":
+        if self._dbms == 'sqlite':
             self._db = sqlite3.connect(self._database)
             if self._db is None:
-                raise WErr("set_database: failed to open sqlite database")
+                raise BWErr('set_database: failed to open sqlite database')
             else:
                 self._cur = self._db.cursor()
-        elif self._dbms == "mysql":
+        elif self._dbms == 'mysql':
             self._db = mysql.connect(user=self._user, password=self._password,
                                      host=self._host, database=self._database)
             if self._db is None:
-                raise WErr("set_database: failed to connect to mysql")
+                raise BWErr('set_database: failed to connect to mysql')
             else:
                 self._cur = self._db.cursor(prepared=True)
         else:
-            raise WErr("set_database: unknown _dbms")
+            raise BWErr('set_database: unknown _dbms')
 
     def get_cursor(self):
         return self._cur
 
     def set_table(self, table):
         self._table = self.sanitize_string(table)
-        self._column_names()
+        self.column_names()
 
     def get_table(self):
         return self._table
@@ -122,7 +129,7 @@ class WDB:
     table = property(fget=get_table, fset=set_table)
     cursor = property(fget=get_cursor)
 
-    # sql methods
+    # sql methods =====
     def sql_do_nocommit(self, sql, parms=()):
         """Execute an SQL statement"""
         self._cur.execute(sql, parms)
@@ -141,6 +148,7 @@ class WDB:
 
     def sql_do_many(self, sql, parms=()):
         """Execute an SQL statement over set of data"""
+        self._cur.executemany(sql, parms)
         self.commit()
         return self._cur.rowcount
 
@@ -158,41 +166,41 @@ class WDB:
     def sql_query_value(self, sql, parms=()):
         return self.sql_query_row(sql, parms)[0]
 
-    # crud methods =======
+    # crud methods =====
     def column_names(self):
-        """ Get column names"""
+        """ Get column names """
         if self._column_names is not None:
             return self._column_names
 
-        if self._dbms == "sqlite":
+        if self._dbms == 'sqlite':
             rows = self.sql_query(f"PRAGMA table_info ({self._table});")
             self._column_names = tuple(r[1] for r in rows)
-        elif self._dbms == "mysql":
+        elif self._dbms == 'mysql':
             self._cur.execute(f"SELECT * FROM {self._table} LIMIT 1")
             self._cur.fetchall()
             self._column_names = self._cur.column_names
         else:
-            raise WErr("column_names: unknown _dbms")
+            raise BWErr("column_names: unknown _dbms")
 
-        if self._column_names[0] != "id":
+        if self._column_names[0] != 'id':
             self._column_names = None
-            raise WErr("column_names: no id column")
+            raise BWErr("colum_names: no id column")
         elif len(self._column_names) < 2:
             self._column_names = None
-            raise WErr("column_names: empty list")
+            raise BWErr("colum_names: empty list")
         else:
             return self._column_names
 
     def count_rows(self):
-        """ Returns number of rows in table"""
+        """ Returns number of rows in table """
         return self.sql_query_value(f"SELECT COUNT(*) FROM {self._table}")
 
     def get_row(self, row_id):
-        """ Get rows from table - returns cursor """
-        return self.sql_query_row(f"SELECT * FROM {self._table}")
+        """ Get rows from table – returns cursor """
+        return self.sql_query_row(f"SELECT * FROM {self._table} WHERE id = ?", (row_id,))
 
     def get_rows(self):
-        """ Get rows from table - returns cursor """
+        """ Get rows from table – returns cursor """
         return self.sql_query(f"SELECT * FROM {self._table}")
 
     def get_rows_limit(self, limit, offset=0):
@@ -202,7 +210,7 @@ class WDB:
     def add_row_nocommit(self, parms=()):
         colnames = self.column_names()
         numnames = len(colnames)
-        if "id" in colnames:
+        if 'id' in colnames:
             numnames -= 1
         names_str = self.sql_colnames_string(colnames)
         values_str = self.sql_values_string(numnames)
@@ -217,9 +225,9 @@ class WDB:
     def update_row_nocommit(self, row_id, dict_rec):
         """ Update row id with data in dict """
         if "id" in dict_rec.keys():  # don't update id column
-            del dict_rec["id"]
+            del dict_rec['id']
 
-        keys = sorted(dict_rec.keys()) # get keys and values
+        keys = sorted(dict_rec.keys())  # get keys and values
         values = [dict_rec[v] for v in keys]
         update_string = self.sql_update_string(keys)
         sql = f"UPDATE {self._table} SET {update_string} WHERE id = ?"
@@ -232,15 +240,16 @@ class WDB:
         return r
 
     def del_row_nocommit(self, row_id):
-        return self.sql_do_nocommit(f"DELETE FROM {self._table} WHERE id = ?", (row_id))
+        return self.sql_do_nocommit(f"DELETE FROM {self._table} WHERE id = ?", (row_id,))
 
     def del_row(self, row_id):
         r = self.del_row_nocommit(row_id)
+        self.commit()
         return r
 
     def find_row(self, colname, value):
         """ Find the first match and returns id or None """
-        colname = self.sanitize_string(colname) # sanitize params
+        colname = self.sanitize_string(colname)  # sanitize params
         sql = f"SELECT * FROM {self._table} WHERE {colname} LIKE ?"
         row = self.sql_query_row(sql, (value,))
         if row:
@@ -250,14 +259,14 @@ class WDB:
 
     def find_rows(self, colname, value):
         """ Find the first match and returns id or empty list """
-        colname = self.sanitize_string(colname)
+        colname = self.sanitize_string(colname)  # sanitize params
         sql = f"SELECT * FROM {self._table} WHERE {colname} LIKE ?"
         row_ids = []
-        for row in self.sql_query(sql, (value, )):
+        for row in self.sql_query(sql, (value,)):
             row_ids.append(row[0])
         return row_ids
 
-    # Utilities
+    # Utilities =====
 
     @staticmethod
     def version():
@@ -265,14 +274,14 @@ class WDB:
 
     @staticmethod
     def sanitize_string(s):
-        """ Remove nefarious characters from a string"""
+        """ Remove nefarious characters from a string """
         charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-.% "
         san_string = ""
         for i in range(0, len(s)):
             if s[i] in charset:
                 san_string += s[i]
             else:
-                san_string += "_"
+                san_string += '_'
         return san_string
 
     @staticmethod
@@ -313,13 +322,13 @@ class WDB:
         if table_name is None:
             table_name = self._table
         if table_name is None:
-            return  False
-        if self._dbms == "sqlite":
+            return False
+        if self._dbms == 'sqlite':
             rc = self.sql_query_value("SELECT COUNT(*) FROM sqlite_master WHERE type=? AND name=?",
-                                      ("table", table_name))
+                                      ('table', table_name))
             if rc > 0:
                 return True
-        if self._dbms == "mysql":
+        if self._dbms == 'mysql':
             rc = self.sql_query_value("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = ?",
                                       (table_name,))
             if rc > 0:
@@ -331,9 +340,9 @@ class WDB:
 
     def begin_transaction(self):
         if self.have_db():
-            if self._database == "sqlite":
+            if self._database == 'sqlite':
                 self.sql_do("BEGIN TRANSACTION")
-            elif self._database == "mysql":
+            elif self._database == 'mysql':
                 self.sql_do("START TRANSACTION")
 
     def rollback(self):
@@ -358,16 +367,18 @@ class WDB:
         self.disconnect()
 
 
-MY_HOST = "127.0.0.1"
-MY_USER = "zahed"
-MY_PASS = "##########"
+MY_HOST = '127.0.0.1'
+MY_USER = 'zahed'
+MY_PASS = '#########'
+
 
 def main():
     try:
-        db = WDB(dbms="sqlite", database="../db/final.db")
-        # db = WDB(dbms="mysql", host=MY_HOST, user=MY_USER, password=MY_PASS, database="final"
+        db = BWDB(dbms='sqlite', database='../db/university.db')
+        # db = BWDB(dbms='mysql', host=MY_HOST, user=MY_USER, password=MY_PASS,
+        #           database='scratch')
 
-        print(f"WDB version {db.version()}")
+        print(f"BWDB version {db.version()}")
         print(f"dbms is {db.dbms}\n")
 
         # start clean
@@ -378,22 +389,22 @@ def main():
         print("create a table")
         if db.dbms == "sqlite":
             create_table = """
-            CREATE TABLE IF NOT EXISTS temp (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
-            description TEXT
-            )
+                CREATE TABLE IF NOT EXISTS temp (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    description TEXT
+                )
             """
         elif db.dbms == "mysql":
             create_table = """
-            CREATE TABLE IF NOT EXISTS temp (
-            id INTEGER AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR (128) NOT NULL,
-            description VARCHAR (128)
-            )
+                CREATE TABLE IF NOT EXISTS temp (
+                    id INTEGER AUTO_INCREMENT PRIMARY KEY,
+                    name VARCHAR(128) NOT NULL,
+                    description VARCHAR(128)
+                )
             """
         else:
-            raise WErr("create table: unknown dbms")
+            raise BWErr("create table: unknown dbms")
 
         # create and set the table
         db.sql_do(create_table)
@@ -402,19 +413,19 @@ def main():
         print(f"table columns: {db.column_names()}\n")
 
         print("populate table")
-        insert_rows = [
+        insert_rows = (
             ("Jimi Hendrix", "Guitar"),
             ("Miles Davis", "Trumpet"),
             ("Billy Cobham", "Drums"),
             ("Charlie Bird", "Saxophone"),
             ("Oscar Peterson", "Piano"),
-            ("Marcus Miller", "Bass")
-        ]
+            ("Marcus Miller", "Bass"),
+        )
 
         print("not add rows (rollback)")
         db.begin_transaction()
         for row in insert_rows:
-            db.add_row_nocommit()
+            db.add_row_nocommit(row)
         db.rollback()
 
         print("add rows")
@@ -430,31 +441,101 @@ def main():
             print(row)
 
         print()
-        
+        print("find more than one row (%s%)")
+        row_ids = db.find_rows("name", "%s%")
+        print(f"found {len(row_ids)} rows")
+        for row_id in row_ids:
+            print(db.get_row(row_id))
+
+        print()
+        print("search for %Bird%")
+        row_id = db.find_row("name", "%Bird%")
+        if row_id > 0:
+            print(f"found row {row_id}")
+            print(db.get_row(row_id))
+
+        print()
+        print(f"update row {row_id}")
+        numrows = db.update_row(row_id, {'name': 'The Bird', 'description': 'Tenor Sax'})
+        print(f"{numrows} row(s) modified")
+        print(db.get_row(row_id))
+
+        print()
+        print("add a row")
+        numrows = db.add_row(["Bob Dylan", "Harmonica"])
+        row_id = db.lastrowid()
+        print(f"{numrows} row added (row {row_id})")
+        print(db.get_row(row_id))
+
+        print()
+        print("delete a row (Cobham)")
+        row_id = db.find_row("name", "%Cobham%")
+        if row_id > 0:
+            print(f"deleting row {row_id}")
+            numrows = db.del_row(row_id)
+            print(f"{numrows} row(s) deleted")
+
+        print()
+        print("print remaining rows")
+        for row in db.get_rows():
+            print(row)
+
+        # add more rows to test paging
+        print()
+        print("add more rows")
+        db.begin_transaction()
+        for row in insert_rows:
+            numrows = db.add_row_nocommit(row)
+        for row in insert_rows:
+            numrows += db.add_row_nocommit(row)
+        for row in insert_rows:
+            numrows += db.add_row_nocommit(row)
+        db.commit()
+        print(f"added {numrows} rows")
+
+        print()
+        print("page through rows")
+        offset = 0
+        limit = 5
+        while True:
+            count = 0
+            for row in db.get_rows_limit(limit, offset):
+                print(row)
+                count += 1
+            if count == 0:  # no rows left
+                break
+            else:
+                print("=====")
+                offset += 5
+
+        print()
+        print("change table to item")
+        db.table = "item"
+        for row in db.get_rows():
+            print(row)
+
+        print()
+        print("change table to temp")
+        db.table = "temp"
+        for row in db.get_rows_limit(6):
+            print(row)
+
+        print()
+        print("dict rows")
+        db.dict_rows = True
+        for row in db.get_rows_limit(5):
+            print(db.make_dict_row(row))
+
+        # cleanup
+        print()
+        print("cleanup: drop table temp")
+        db.sql_do("DROP TABLE IF EXISTS temp")
+        print("done.")
+
+    except BWErr as err:
+        print(f"Error: {err}")
+        exit(1)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+if __name__ == "__main__":
+    main()
