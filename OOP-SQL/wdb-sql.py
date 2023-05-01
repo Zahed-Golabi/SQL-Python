@@ -146,3 +146,53 @@ class WDB:
         return self.sql_query_row(sql, parms)[0]
 
     # Utilities   ============
+
+    def have_db(self):
+        if self._db is None:
+            return False
+        else:
+            return True
+
+    def have_cursor(self):
+        if self._cur is None:
+            return False
+        else:
+            return True
+
+    def lastrowid(self):
+        return self._cur.lastrowid
+
+    def disconnect(self):
+        if self.have_cursor():
+            self._cur.close()
+        if self.have_db():
+            self._db.close()
+        self._cur = None
+        self._db = None
+
+    def begin_transaction(self):
+        if self.have_db():
+            if self._database == "sqlite":
+                self.sql_do("BEGIN TRANSACTION")
+            elif self._database == "mysql":
+                self.sql_do("START TRANSACTION")
+
+    def rollback(self):
+        if self.have_db():
+            self._db.rollback()
+
+    def commit(self):
+        if self.have_db():
+            self._db.commit()
+
+    # destructor
+    def __del__(self):
+        self.disconnect()
+
+
+MY_HOST = "127.0.0.1"
+MY_USER = "zahed"
+MY_PASSWORD = "#########"
+
+
+
