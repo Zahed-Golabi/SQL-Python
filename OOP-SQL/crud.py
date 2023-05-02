@@ -133,7 +133,18 @@ def main():
             print(row)
 
         #cleanup
-        
+        print()
+        print("cleanup: drop table temp")
+        db.sql_do("DROP TABLE IF EXISTS temp")
+        print("done.")
+    except BWErr as error:
+        print(f"Error: {error}")
+        exit(1)
+
+if __name__ == '__main__':
+    main()
+
+
 
 
 
