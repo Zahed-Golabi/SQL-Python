@@ -82,6 +82,60 @@ def main():
         print(f"{numrows} row added (row {row_id}")
         print(db.get_row(row_id))
 
+        print()
+        print("delete a row (Cobham)")
+        row_id = db.find_row("name", "%Cobham%")
+        if row_id > 0:
+            print(f"deleting row {row_id}")
+            numrows = db.del_row(row_id)
+            print(f"{numrows} row(s) deleted")
+
+        print()
+        print("print remaining rows")
+        for row in db.get_rows():
+            print(row)
+
+        # add more rows to test paging
+        print()
+        print("add more rows")
+        for row in insert_rows:
+            numrows = db.add_row_nocommit(row)
+        for row in insert_rows:
+            numrows += db.add_row_nocommit(row)
+        for row in insert_rows:
+            numrows += db.add_row_nocommit(row)
+        db.commit()
+        print(f"added {numrows} rows")
+
+        print()
+        print("page through rows")
+        offset = 0
+        limit = 5
+        while True:
+            count = 0
+            for row in db.get_rows_limit(limit, offset):
+                print(row)
+                count += 1
+            if count == 0:  # no rows left
+                break
+            else:
+                print("============")
+                offset += 5
+        print()
+        print("change table to item")
+        db.table = "item"
+        for row in db.get_rows():
+            print(row)
+        print()
+        print("change table to temp")
+        db.table = "temp"
+        for row in db.get_rows_limit(6):
+            print(row)
+
+        #cleanup
+        
+
+
 
 
 
