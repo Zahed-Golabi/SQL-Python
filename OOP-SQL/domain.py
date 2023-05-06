@@ -41,6 +41,43 @@ def do_menu():
             continue
     return response
 
+def jump(response):
+    if response == "A":
+        add_domain()
+    elif response == "F":
+        find_domain()
+    elif response == "E":
+        edit_domain()
+    elif response == "L":
+        list_domain()
+    elif response == "D":
+        delete_domain()
+    elif response == "X":
+        drop_domain()
+    else:
+        print("jump: invalid argument")
+    return
+
+def add_domain():
+    print("Add domain")
+
+def find_domain():
+    print("Find domain")
+
+def edit_domain():
+    print("Edit domain")
+
+def list_domain():
+    print("List domain")
+
+def delete_domain():
+    print("Delete domain")
+
+def drop_domain():
+    print("Drop domain")
+
+
+
 
 
 
