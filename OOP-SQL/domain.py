@@ -1,6 +1,6 @@
 from wdb import BWErr, BWDB
 
-GLOBASLS = {}
+GLOBALS = {}
 
 
 def connect():
@@ -13,7 +13,7 @@ def connect():
         print(f"Error: {error}")
         exit(1)
 
-    GLOBASLS["db"] = db
+    GLOBALS["db"] = db
     return db
 
 
@@ -63,7 +63,7 @@ def jump(response):
 
 def add_domain():
     print("Add domain")
-    db = GLOBASLS["db"]
+    db = GLOBALS["db"]
     if db is None:
         raise BWErr("add_domain: no db object")
     domain = input("Domain name > ")
@@ -73,14 +73,14 @@ def add_domain():
         raise BWErr("unable to add domain")
     row_id = db.lastrowid()
     row = db.get_row(row_id)
-    print(f"frow added: {row}")
+    print(f"row added: {row}")
 
 
 def find_domain(**kwargs):
     print("Find domain")
     if "noprompt" not in kwargs:
         print("Find domain")
-    db = GLOBASLS["db"]
+    db = GLOBALS["db"]
     if db is None:
         raise BWErr("find_domain: no db object")
     domain = input("Domain name > ")
@@ -98,7 +98,7 @@ def find_domain(**kwargs):
 
 def edit_domain():
     print("Edit domain")
-    db = GLOBASLS["db"]
+    db = GLOBALS["db"]
     if db is None:
         raise BWErr("edit_domain: no db object")
     row_id = find_domain(noprompt=True)
@@ -116,11 +116,73 @@ def edit_domain():
 
 def list_domain():
     print("List domain")
+    db = GLOBALS["db"]
+    if db is None:
+        raise BWErr("list_domain: no db object")
+    print(f"Listing {db.count_rows()} domain(s)")
+    for row in db.get_rows():
+        print(row)
 
 
 def delete_domain():
     print("Delete domain")
+    db = GLOBALS["db"]
+    if db is None:
+        raise BWErr("delete_domain: no db object")
+    row_id = find_domain(noprompt=True)
+    if row_id:
+        yn = input("Delete row? (Y/N) > ").upper()
+        if yn == "Y":
+            db.del_row(row_id)
+            print("Deleted.")
+        else:
+            print("Not deleted.")
 
 
 def drop_domain():
     print("Drop domain")
+    try:
+        db = GLOBALS["db"]
+        if db is None:
+            raise BWErr("drop_db: no db object")
+        db.sql_do("DROP TABLE IF EXISTS domains")
+        exit(0)
+    except BWErr as error:
+        print(f"Error: {error}")
+        exit(1)
+
+
+def main():
+    connect()
+    db = GLOBALS["db"]
+
+    # create table if not exists
+    create_table_statement = """
+    CREATE TABLE IF NOT EXISTS domains (
+    id INTEGER PRIMARY KEY,
+    domain VARCHAR(127) NOT NULL,
+    description VARCHAR (255)
+    )
+    """
+
+    try:
+        if not db.have_table("domains"):
+            db.sql_do(create_table_statement)
+    except BWErr as error:
+        print(f"cannot create table : {error}")
+        exit(1)
+
+    db.table = "domains"
+    # menu
+    while True:
+        response = do_menu()
+        if response == "Q":
+            print("Quitting")
+            exit(0)
+        else:
+            print()  # blank line
+            jump(response)
+
+
+if __name__ == "__main__":
+    main()
