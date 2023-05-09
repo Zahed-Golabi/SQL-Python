@@ -1,4 +1,7 @@
 # SQL-Python
+
+<img src="./imgs/mysql.png" width="70%">
+
 MySQL with Python
 ---
 In this tutorial you will learn about mysql with python and be familiar with queries.<br/>
